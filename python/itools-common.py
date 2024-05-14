@@ -20,6 +20,7 @@ class ProcColor(enum.Enum):
     bgr = 0
     yvu = 1
     both = 2
+    yuv420p10le = 3
 
 
 PROC_COLOR_LIST = list(c.name for c in ProcColor)
@@ -129,7 +130,7 @@ def run(command, **kwargs):
 # Algo is very simple (just dup values)
 def chroma_subsample_reverse(inmatrix, colorspace):
     in_w, in_h = inmatrix.shape
-    if colorspace in ("420jpeg", "420paldv", "420", "420mpeg2"):
+    if colorspace in ("420jpeg", "420paldv", "420", "420mpeg2",):
         out_w = in_w << 1
         out_h = in_h << 1
         outmatrix = np.zeros((out_w, out_h), dtype=np.uint8)
@@ -148,6 +149,14 @@ def chroma_subsample_reverse(inmatrix, colorspace):
         out_h = in_h
         outmatrix = np.zeros((out_w, out_h), dtype=np.uint8)
         outmatrix = inmatrix
+    elif colorspace in ("420p10",):
+        out_w = in_w << 1
+        out_h = in_h << 1
+        outmatrix = np.zeros((out_w, out_h), dtype=np.uint16)
+        outmatrix[::2, ::2] = inmatrix
+        outmatrix[1::2, ::2] = inmatrix
+        outmatrix[::2, 1::2] = inmatrix
+        outmatrix[1::2, 1::2] = inmatrix
     return outmatrix
 
 

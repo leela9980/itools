@@ -25,7 +25,7 @@ itools_y4m = importlib.import_module("itools-y4m")
 
 
 DEFAULT_NOISE_LEVEL = 50
-PSNR_K = math.log10(2**8 - 1)
+MAX_VAL = lambda bits=8: math.log10(2**bits - 1)
 ROTATE_ANGLE_LIST = {
     0: 0,
     90: 1,
@@ -353,22 +353,26 @@ def diff_images(
 
 def mse_image(infile, iinfo, mse_invert, proc_color, config_dict, debug):
     assert (
-        proc_color == itools_common.ProcColor.bgr
+        proc_color == itools_common.ProcColor.bgr or proc_color == itools_common.ProcColor.yuv420p10le
     ), f"error: mse_image unsupported in {proc_color}"
     # load the input image
-    inbgr, _ = itools_io.read_image_file(infile, config_dict, iinfo=iinfo)
+    inbgr, _ = itools_io.read_image_file(infile, config_dict, iinfo=iinfo, return_type=proc_color)
     assert inbgr is not None, f"error: cannot read {infile}"
     # TODO(chema): use status (_) to deal with color ranges
     # careful with number ranges
-    inyvu = cv2.cvtColor(inbgr, cv2.COLOR_BGR2YCrCb).astype(np.int32)
-    # calculate the (1 - luma) mse
-    luma = inyvu[:, :, 0]
-    width, height = luma.shape
+
+    if proc_color == itools_common.ProcColor.bgr:
+        luma = cv2.cvtColor(inbgr, cv2.COLOR_BGR2YCrCb).astype(np.uint32)[:, :, 0]
+    elif proc_color == itools_common.ProcColor.yuv420p10le:
+        luma = inbgr[:, :, 0].astype(np.uint32)
+
     if mse_invert:
         mse = ((255 - luma) ** 2).mean()
     else:
         mse = (luma**2).mean()
     # calculate the PSNR
+
+    PSNR_K = MAX_VAL(10 if proc_color == itools_common.ProcColor.yuv420p10le else 8)
     psnr = (20 * PSNR_K - 10 * math.log10(mse)) if mse != 0.0 else 100
     return mse, psnr
 

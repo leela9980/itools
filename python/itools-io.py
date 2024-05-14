@@ -71,7 +71,8 @@ def read_image_file(
             return outyvu, status
         else:
             return outyvu, status
-
+    elif return_type == itools_common.ProcColor.yuv420p10le:
+        return outyvu, status
     elif return_type == itools_common.ProcColor.bgr:
         if outbgr is None:
             outbgr = cv2.cvtColor(outyvu, cv2.COLOR_YCrCb2BGR)
